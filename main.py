@@ -46,6 +46,10 @@ def validate(text: str) -> None:
         raise ValueError("entry does not round-trip as UTF-8")
     if len(encoded) != len(text):
         raise ValueError("entry is expected to be plain ASCII")
+    if "  " in text:
+        raise ValueError("entry must use single spaces between fragments")
+    if text.count(".") != 1:
+        raise ValueError("entry must be exactly one sentence")
 
 
 def main() -> None:
