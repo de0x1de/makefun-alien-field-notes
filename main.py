@@ -22,8 +22,20 @@ MAX_CHARACTERS = 200
 
 
 def build_entry() -> str:
-    """Join the fragments with single spaces into one line."""
-    return " ".join(part.strip() for part in (HEADER, CAPABILITY, USAGE))
+    """Join the fragments with single spaces into one line.
+
+    Each fragment must contribute real text: an empty or whitespace-only
+    fragment would silently collapse the joke's structure (and could
+    hide a truncated constant), so reject it before joining instead of
+    letting validate() catch a malformed entry downstream.
+    """
+    fragments = (HEADER, CAPABILITY, USAGE)
+    for index, fragment in enumerate(fragments, start=1):
+        if not fragment or not fragment.strip():
+            raise ValueError(f"entry fragment {index} must not be empty")
+        if fragment != fragment.strip():
+            raise ValueError(f"entry fragment {index} has stray surrounding whitespace")
+    return " ".join(fragments)
 
 
 def validate(text: str) -> None:
@@ -50,6 +62,14 @@ def validate(text: str) -> None:
         raise ValueError("entry must use single spaces between fragments")
     if text.count(".") != 1:
         raise ValueError("entry must be exactly one sentence")
+    # A one-liner still needs enough words to carry the observation:
+    # guard against a degenerate entry that keeps the required phrases
+    # but drops the connective wording around them.
+    word_count = len(text.split())
+    if word_count < 20:
+        raise ValueError(f"entry has only {word_count} words, expected at least 20")
+    if text.split()[0] != "Observation:":
+        raise ValueError("entry's first word must be the observation header")
 
 
 def main() -> None:
